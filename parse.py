@@ -1,78 +1,88 @@
-from bs4 import BeautifulSoup
-
+from dataclasses import dataclass
 import os
 import pickle
-import requests
 from functools import wraps
+import sys
+from typing import Optional, List
 
-def cache_get(func):
-    @wraps(func)
-    def wrapper(url, *args, **kwargs):
-        filename = os.path.join('/tmp', url.replace('/', '_'))  # Creates unique filenames for each url
+from bs4 import BeautifulSoup
+import requests
 
-        if os.path.exists(filename):
-            with open(filename, 'rb') as f:
-                print('Serving cached result for ' + url)
-                return pickle.load(f)
+import gscholar
 
-        response = func(url, *args, **kwargs)
+def clean(s: str):
+    # remove any non-letters in s
+    return s
 
-        with open(filename, 'wb') as f:
-            pickle.dump(response, f)
+@dataclass
+class Professor:
+    first: str
+    last: str
+    middle: Optional[str]
+    website: str
+    pubs: List[gscholar.Publication]
 
-        return response
-
-    return wrapper
+    def name(self):
+        m = self.middle+" " if self.middle else ""
+        return f"{self.first} {m}{self.last}"
 
 departments = [
     "https://www.cs.rochester.edu/people/faculty/index.html",
     "https://www.sas.rochester.edu/mth/people/faculty/index.html"
 ]
 
-@cache_get
-def _fetch(url):
-    print('Fetching ' + url)
-    return requests.get(url).text
-
 deptmap = {
-    "cs": "/Users/matt/Downloads/cs.html",
-    "math": "/Users/matt/Downloads/math.html",
-    "chem": "/Users/matt/Downloads/chem.html",
-    "physics": "/Users/matt/Downloads/physics.html",
+    "cs": "data/cs.html",
+    "math": "data/math.html",
+    "chem": "data/chem.html",
+    "physics": "data/physics.html",
 }
 
 def dept(i):
     fi = deptmap[i]
     with open(fi) as f:
         return f.read()
-import sys
 
-if len(sys.argv) != 2 or sys.argv[1] not in deptmap.keys():
-    print("bad usage")
-    sys.exit()
+def get_profs(department: str):
+    html = dept(department)
+    soup = BeautifulSoup(html, "html.parser")
 
+    links = [tag for tag in soup.find_all('h4', {"class": "name"})]
+    for link in links:
+        user = [group for group in link if group.name == 'a']
+        if user:
+            user = user[0]
+        else:
+            continue
 
-html = dept(sys.argv[1])
+        (last, first) = user.contents[0].split(", ")
+        t = first.split()
+        if len(t) >= 2:
+            first = clean(t[0])
+            middle = clean(t[1])
+        else:
+            middle = None
+        
+        p = Professor(
+            first=first,
+            last=last,
+            middle=middle,
+            website=user['href'],
+            pubs=None,
+        )
+        p.pubs = gscholar.get_pubs(p.name())
+        yield p
 
-soup = BeautifulSoup(html, "html.parser")
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in deptmap.keys():
+        print("bad usage")
+        return
 
-from dataclasses import dataclass
-@dataclass
-class Person:
-    first: str
-    last: str
-    middle: str
-    website: str
-    gscholar: str
+    profs = list(get_profs(sys.argv[1]))
+    for prof in profs:
+        print(prof)
 
-links = [tag for tag in soup.find_all('h4', {"class": "name"})]
-for link in links:
-    #print(link.contents)
-    user = [group for group in link if group.name == 'a']
-    if user:
-        user = user[0]
-    else:
-        continue
-    
-    name = (user['href'], user.contents)
-    print(name)
+    print(list(profs[13].pubs))
+
+if __name__ == "__main__":
+    main()
