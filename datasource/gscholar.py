@@ -5,19 +5,21 @@ from dataclasses import dataclass
 
 from tqdm import tqdm
 from scholarly import scholarly
+from parse import Professor
 
 p = lambda x : print(json.dumps(x, indent=2))
 
 @dataclass
 class Publication:
-    author: str
+    author: Professor
     title: str
     abstract: str
     url: str
     pub_year: int
 
 
-def get_pubs(author_name: str, limit=3):
+def get_pubs(prof: Professor, limit=3):
+    author_name = prof.name()
     authors = list(scholarly.search_author(author_name))
     authors = [author for author in authors
                if 'university of rochester' in author["affiliation"].lower()]
@@ -36,13 +38,13 @@ def get_pubs(author_name: str, limit=3):
         #p(pub)
         bib = pub["bib"]
         yield Publication(
-            author=author_name,
+            author=prof,
             title=bib.get('title', ""),
             abstract=bib.get('abstract', ""),
             url=pub.get("pub_url", 1),
             pub_year=bib.get('pub_year', ""),
         )
-        time.sleep(1)
+        time.sleep(1.1)
 
 def test():
     profs = [

@@ -4,6 +4,7 @@ import json
 import pickle
 from functools import wraps
 import sys
+import time
 from typing import Optional, List
 
 from bs4 import BeautifulSoup
@@ -21,10 +22,8 @@ class Professor:
     first: str
     last: str
     middle: Optional[str]
-
     department: str
     website: str
-    pubs: List[gscholar.Publication]
 
     def name(self):
         m = self.middle+" " if self.middle else ""
@@ -59,6 +58,7 @@ def get_profs(department: str, limit=3):
         else:
             continue
 
+        # TODO: there is a bug here for math dept (at least)
         (last, first) = user.contents[0].split(", ")
         t = first.split()
         if len(t) >= 2:
@@ -73,28 +73,43 @@ def get_profs(department: str, limit=3):
             middle=middle,
             department=department,
             website=user['href'],
-            pubs=None,
         )
-        p.pubs = list(gscholar.get_pubs(p.name(), limit=limit))
         yield p
 
-def main():
+def get_pubs(profs: List[Professor], dept: str, limit=None):
+    t = str(int(time.time()))
+    pubs = []
+    for prof in profs:
+        try:
+            prof_pubs = list(gscholar.get_pubs(prof, limit=limit))
+            pubs.extend([asdict(p) for p in prof_pubs])
+
+            # write and checkpoint
+            with open(f"parsed/checkpoint/{dept}_{t}.json", "w") as f:
+                json.dump(list(pubs), f, indent=2)
+
+        except Exception as e:
+            print(f"failed to fetch pubs for professor '{prof.name()}'")
+            print(e)
+
+    # final write
+    with open(f"parsed/{dept}_{t}.json", "w") as f:
+        json.dump(list(pubs), f, indent=2)
+
+    return pubs
+
+def main(limit=None):
     if len(sys.argv) != 2 or sys.argv[1] not in deptmap.keys():
         print("bad usage")
         return
 
-    profs = []
+    dept = sys.argv[1]
 
-    for prof in get_profs(sys.argv[1], limit=None):
-        prof = asdict(prof)
-        profs.append(prof)
+    # get profs
+    profs = get_profs(dept, limit=limit)
 
-        # write checkpoint
-        with open("parsed/checkpoint.json", "w") as f:
-            json.dump(profs, f, indent=2)
-
-    with open("parsed/full.json", "w") as f:
-        json.dump(profs, f, indent=2)
+    # get pubs
+    get_pubs(profs, dept, limit=limit)
     
 if __name__ == "__main__":
-    main()
+    main(10)

@@ -1,0 +1,28 @@
+[
+  {
+    "author": {
+      "first": "Zhen",
+      "last": "Bai",
+      "middle": "",
+      "department": "cs",
+      "website": "https://www.cs.rochester.edu/people/faculty/bai-zhen/index.html"
+    },
+    "title": "Using augmented reality to elicit pretend play for children with autism",
+    "abstract": "Children with autism spectrum condition (ASC) suffer from deficits or developmental delays in symbolic thinking. In particular, they are often found lacking in pretend play during early childhood. Researchers believe that they encounter difficulty in generating and maintaining mental representation of pretense coupled with the immediate reality. We have developed an interactive system that explores the potential of Augmented Reality (AR) technology to visually conceptualize the representation of pretense within an open-ended play environment. Results from an empirical study involving children with ASC aged 4 to 7 demonstrated a significant improvement of pretend play in terms of frequency, duration and relevance using the AR system in comparison to a non computer-assisted situation. We investigated individual differences, skill transfer, system usability and limitations of the proposed AR system. We discuss \u2026",
+    "url": "https://ieeexplore.ieee.org/abstract/document/7000596/",
+    "pub_year": 2015
+  },
+  {
+    "author": {
+      "first": "Zhen",
+      "last": "Bai",
+      "middle": "",
+      "department": "cs",
+      "website": "https://www.cs.rochester.edu/people/faculty/bai-zhen/index.html"
+    },
+    "title": "SmileyCluster: supporting accessible machine learning in K-12 scientific discovery",
+    "abstract": "There is an increasing need to prepare young learners to be Artificial Intelligence (AI) capable for the future workforce and everyday life. Machine Learning (ML), as an integral subfield of AI, has become the new engine that revolutionizes practices of knowledge discovery. Making ML experience accessible to young learners, however, remains challenging due to its high demand for mathematical and computational skills. This research focuses on designing novel learning environments that help demystify ML technologies for K-12 students, and also investigating new opportunities for maximizing ML accessibility through integration with scientific discovery in STEM education. We developed SmileyCluster - a hands-on and collaborative learning environment that utilizes glyph-based data visualization and superposition comparative visualization to assist learning an entry-level ML technology, namely k-means \u2026",
+    "url": "https://dl.acm.org/doi/abs/10.1145/3392063.3394440",
+    "pub_year": 2020
+  }
+]

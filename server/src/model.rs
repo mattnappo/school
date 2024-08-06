@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use serde_json as json;
 
 /*
@@ -9,73 +10,58 @@ macro_rules! field {
 }
 */
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Professor {
     first: String,
     last: String,
     middle: Option<String>,
     website: String,
-    pubs: Vec<Publication>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Publication {
-    author: String,
+    author: Professor,
     title: String,
-    abstract_: String,
+    r#abstract: String,
     url: String,
     pub_year: Option<u64>,
 }
 
-impl Professor {
-    pub fn new(item: &json::Value) -> Result<Self> {
-        let first = &item["first"];
-        let last = &item["last"];
-        let middle = if &item["middle"] == "" {
-            None
+impl redis::FromRedisValue for Professor {
+    fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
+        //let t = v.into_sequence().into_iter().map(|x| json::from_str(x).unwrap())?;
+        let v = v.as_sequence().context("no results found").unwrap();
+        let num_results = if let redis::Value::Int(i) = &v[0] {
+            i
         } else {
-            Some(&item["middle"])
+            panic!("failed to parse search result");
         };
-        let website = &item["website"];
 
-        let pubs = item["pubs"]
-            .as_array()
-            .unwrap_or(&vec![])
-            .into_iter()
-            .map(|p| Publication::new(&p).unwrap())
-            .collect::<Vec<Publication>>();
+        if *num_results == 0 {
+            panic!("no results");
+        }
 
-        Ok(Professor {
-            first: first.to_string(),
-            last: last.to_string(),
-            middle: middle.map(|n| n.to_string()),
-            website: website.to_string(),
-            pubs,
-        })
+        let key = if let redis::Value::BulkString(i) = &v[1] {
+            std::str::from_utf8(i).unwrap()
+        } else {
+            panic!("failed to parse search result");
+        };
+
+        let data = if let redis::Value::BulkString(i) = &v[2].as_sequence().unwrap()[1] {
+            let s = std::str::from_utf8(&i).unwrap();
+            json::from_str::<Professor>(s).unwrap()
+        } else {
+            panic!("failed to parse search result");
+        };
+
+        //let results = v.into_iter().map(|result| {}).collect;
+
+        Ok(data)
     }
 }
 
-impl Publication {
-    pub fn new(item: &json::Value) -> Result<Self> {
-        let author = &item["author"];
-        let title = &item["title"];
-        let abstract_ = &item["abstract"];
-        let url = &item["url"];
-        let pub_year = {
-            let y = item["pub_year"].as_u64().unwrap_or_default();
-            if y == 0 {
-                None
-            } else {
-                Some(y)
-            }
-        };
-
-        Ok(Publication {
-            author: author.to_string(),
-            title: title.to_string(),
-            abstract_: abstract_.to_string(),
-            url: url.to_string(),
-            pub_year,
-        })
+impl redis::FromRedisValue for Publication {
+    fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
+        todo!()
     }
 }
