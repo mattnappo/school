@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import os
+import json
 import pickle
 from functools import wraps
 import sys
@@ -7,6 +8,7 @@ from typing import Optional, List
 
 from bs4 import BeautifulSoup
 import requests
+from tqdm import tqdm
 
 import gscholar
 
@@ -19,6 +21,8 @@ class Professor:
     first: str
     last: str
     middle: Optional[str]
+
+    department: str
     website: str
     pubs: List[gscholar.Publication]
 
@@ -43,12 +47,12 @@ def dept(i):
     with open(fi) as f:
         return f.read()
 
-def get_profs(department: str):
+def get_profs(department: str, limit=3):
     html = dept(department)
     soup = BeautifulSoup(html, "html.parser")
 
     links = [tag for tag in soup.find_all('h4', {"class": "name"})]
-    for link in links:
+    for link in tqdm(links[:limit]):
         user = [group for group in link if group.name == 'a']
         if user:
             user = user[0]
@@ -61,16 +65,17 @@ def get_profs(department: str):
             first = clean(t[0])
             middle = clean(t[1])
         else:
-            middle = None
+            middle = ''
         
         p = Professor(
             first=first,
             last=last,
             middle=middle,
+            department=department,
             website=user['href'],
             pubs=None,
         )
-        p.pubs = gscholar.get_pubs(p.name())
+        p.pubs = list(gscholar.get_pubs(p.name(), limit=limit))
         yield p
 
 def main():
@@ -78,11 +83,14 @@ def main():
         print("bad usage")
         return
 
-    profs = list(get_profs(sys.argv[1]))
+    profs = list(get_profs(sys.argv[1], limit=None))
+    profs = [asdict(prof) for prof in profs]
+
+    with open("parsed/full.json", "w") as f:
+        json.dump(profs, f, indent=2)
+    
     for prof in profs:
         print(prof)
-
-    print(list(profs[13].pubs))
 
 if __name__ == "__main__":
     main()
