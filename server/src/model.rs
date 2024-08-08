@@ -1,14 +1,6 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Result};
+use redis::{RedisResult, Value};
 use serde::{Deserialize, Serialize};
-use serde_json as json;
-
-/*
-macro_rules! field {
-   ($item:expr, $field:expr) => {
-       let $field = $item.get(stringify!($field)).context(concat!("missing field ", stringify!($field)))?.to_string();
-   };
-}
-*/
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Professor {
@@ -27,41 +19,79 @@ pub struct Publication {
     pub_year: Option<u64>,
 }
 
-impl redis::FromRedisValue for Professor {
-    fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
-        //let t = v.into_sequence().into_iter().map(|x| json::from_str(x).unwrap())?;
-        let v = v.as_sequence().context("no results found").unwrap();
-        let num_results = if let redis::Value::Int(i) = &v[0] {
-            i
-        } else {
-            panic!("failed to parse search result");
-        };
-
-        if *num_results == 0 {
-            panic!("no results");
-        }
-
-        let key = if let redis::Value::BulkString(i) = &v[1] {
-            std::str::from_utf8(i).unwrap()
-        } else {
-            panic!("failed to parse search result");
-        };
-
-        let data = if let redis::Value::BulkString(i) = &v[2].as_sequence().unwrap()[1] {
-            let s = std::str::from_utf8(&i).unwrap();
-            json::from_str::<Professor>(s).unwrap()
-        } else {
-            panic!("failed to parse search result");
-        };
-
-        //let results = v.into_iter().map(|result| {}).collect;
-
-        Ok(data)
+fn redis_to_int(v: &redis::Value) -> Result<i64> {
+    match v {
+        redis::Value::Int(i) => Ok(*i),
+        _ => bail!("failed to parse int, but {v:?} supplied"),
     }
 }
 
-impl redis::FromRedisValue for Publication {
-    fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
-        todo!()
+fn redis_to_string(v: &redis::Value) -> Result<String> {
+    match v {
+        redis::Value::BulkString(s) => Ok(std::str::from_utf8(s)?.to_string()),
+        _ => bail!("failed to parse String, but {v:?} supplied"),
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Publications(Vec<Publication>);
+
+impl Publications {
+    pub fn inner(self) -> Vec<Publication> {
+        self.0
+    }
+}
+
+macro_rules! redis_err {
+    ($msg:literal) => {
+        return Err(redis::RedisError::from((
+            redis::ErrorKind::ParseError,
+            $msg,
+        )))
+    };
+}
+
+macro_rules! map_redis_err {
+    ($e:expr, $msg:literal) => {
+        $e.map_err(|_| {
+            eprintln!("{}", $msg);
+            redis::RedisError::from((redis::ErrorKind::ParseError, $msg))
+        })
+    };
+}
+
+impl redis::FromRedisValue for Publications {
+    fn from_redis_value(v: &Value) -> RedisResult<Self> {
+        let mut pubs: Vec<Publication> = vec![];
+        match v {
+            Value::Array(array) => {
+                let len = map_redis_err!(redis_to_int(&array[0]), "failed to parse array length")?
+                    as usize;
+                if len == 0 {
+                    return Ok(Publications(vec![]));
+                }
+
+                for i in (1..(len * 2)).step_by(2) {
+                    if let Value::Array(inner_array) = &array[i + 1] {
+                        if inner_array.len() != 2 {
+                            redis_err!("invalid inner array length (expected 2)");
+                        }
+
+                        if let Value::BulkString(json_bytes) = &inner_array[1] {
+                            pubs.push(map_redis_err!(
+                                serde_json::from_slice::<Publication>(&json_bytes),
+                                "failed to parse json payload"
+                            )?);
+                        } else {
+                            redis_err!("expected bulk-string for json data");
+                        }
+                    } else {
+                        redis_err!("expected inner array");
+                    }
+                }
+                Ok(Publications(pubs))
+            }
+            _ => redis_err!("expected outer array"),
+        }
     }
 }

@@ -37,6 +37,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "descape"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "396a0a312bef78b5f62b0251d7162c4b8af162949b8b104d2967e41b26c1b68c"
+
+[[package]]
 name = "form_urlencoded"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -127,6 +133,20 @@ dependencies = [
 
 [[package]]
 name = "redis"
+version = "0.22.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa8455fa3621f6b41c514946de66ea0531f57ca017b2e6c7cc368035ea5b46df"
+dependencies = [
+ "combine",
+ "itoa",
+ "percent-encoding",
+ "ryu",
+ "sha1_smol",
+ "url",
+]
+
+[[package]]
+name = "redis"
 version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e902a69d09078829137b4a5d9d082e0490393537badd7c91a3d69d14639e115f"
@@ -158,6 +178,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-redis"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "554f4a61298b079fe5c5e0f5207f78dbe6bf13d103e381ee6aa0cf59790995f6"
+dependencies = [
+ "redis 0.22.3",
+ "serde",
+]
+
+[[package]]
 name = "serde_derive"
 version = "1.0.204"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -185,9 +215,12 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "redis",
+ "descape",
+ "redis 0.26.1",
  "serde",
+ "serde-redis",
  "serde_json",
+ "unescape",
 ]
 
 [[package]]
@@ -231,6 +264,12 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
+name = "unescape"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccb97dac3243214f8d8507998906ca3e2e0b900bf9bf4870477f125b82e68f6e"
 
 [[package]]
 name = "unicode-bidi"
