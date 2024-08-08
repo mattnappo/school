@@ -44,7 +44,7 @@ impl Publications {
 
 macro_rules! redis_err {
     ($msg:literal) => {
-        return Err(redis::RedisError::from((
+        Err(redis::RedisError::from((
             redis::ErrorKind::ParseError,
             $msg,
         )))
@@ -62,7 +62,6 @@ macro_rules! map_redis_err {
 
 impl redis::FromRedisValue for Publications {
     fn from_redis_value(v: &Value) -> RedisResult<Self> {
-        let mut pubs: Vec<Publication> = vec![];
         match v {
             Value::Array(array) => {
                 let len = map_redis_err!(redis_to_int(&array[0]), "failed to parse array length")?
@@ -71,25 +70,32 @@ impl redis::FromRedisValue for Publications {
                     return Ok(Publications(vec![]));
                 }
 
-                for i in (1..(len * 2)).step_by(2) {
-                    if let Value::Array(inner_array) = &array[i + 1] {
-                        if inner_array.len() != 2 {
-                            redis_err!("invalid inner array length (expected 2)");
-                        }
+                let pubs: RedisResult<Vec<Publication>> = array
+                    .iter()
+                    .skip(2)
+                    .step_by(2)
+                    .map(|res| {
+                        // println!("{res:#?}");
+                        if let Value::Array(inner_array) = &res {
+                            if inner_array.len() != 2 {
+                                return redis_err!("invalid inner array length (expected 2)");
+                            }
 
-                        if let Value::BulkString(json_bytes) = &inner_array[1] {
-                            pubs.push(map_redis_err!(
-                                serde_json::from_slice::<Publication>(&json_bytes),
-                                "failed to parse json payload"
-                            )?);
+                            if let Value::BulkString(json_bytes) = &inner_array[1] {
+                                map_redis_err!(
+                                    serde_json::from_slice::<Publication>(&json_bytes),
+                                    "failed to parse json payload"
+                                )
+                            } else {
+                                redis_err!("expected bulk-string for json data")
+                            }
                         } else {
-                            redis_err!("expected bulk-string for json data");
+                            redis_err!("expected inner array")
                         }
-                    } else {
-                        redis_err!("expected inner array");
-                    }
-                }
-                Ok(Publications(pubs))
+                    })
+                    .collect();
+
+                Ok(Publications(pubs?))
             }
             _ => redis_err!("expected outer array"),
         }

@@ -1,4 +1,3 @@
-import multiprocessing.pool as mpool
 import re
 from time import sleep
 
@@ -26,9 +25,7 @@ def worker(url):
     print(title)
 
 # do all urls
-# pool = mpool.ThreadPool(2)
 for url in urls:
-    # pool.apply_async(worker, args=(url, ))
     try:
         worker(url)
         sleep(5)

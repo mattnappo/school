@@ -6,12 +6,11 @@ from functools import wraps
 import sys
 import time
 from typing import Optional, List
-
+from scholarly import scholarly
 from bs4 import BeautifulSoup
 import requests
 from tqdm import tqdm
 
-import gscholar
 
 def clean(s: str):
     # remove any non-letters in s
@@ -29,10 +28,41 @@ class Professor:
         m = self.middle+" " if self.middle else ""
         return f"{self.first} {m}{self.last}"
 
-departments = [
-    "https://www.cs.rochester.edu/people/faculty/index.html",
-    "https://www.sas.rochester.edu/mth/people/faculty/index.html"
-]
+@dataclass
+class Publication:
+    author: Professor
+    title: str
+    abstract: str
+    url: str
+    pub_year: int
+
+
+def get_gscholar_pubs(prof: Professor, limit=3):
+    author_name = prof.name()
+    authors = list(scholarly.search_author(author_name))
+    authors = [author for author in authors
+               if 'university of rochester' in author["affiliation"].lower()]
+    if not authors:
+        return []
+
+    # take the first one
+    author = authors[0]
+
+    # Retrieve all the details for the author
+    author = scholarly.fill(author)
+
+    # Take a closer look at the first publication
+    for pub in tqdm(author['publications'][:limit]):
+        first_pub = scholarly.fill(pub)
+        bib = pub["bib"]
+        yield Publication(
+            author=prof,
+            title=bib.get('title', ""),
+            abstract=bib.get('abstract', ""),
+            url=pub.get("pub_url", 1),
+            pub_year=bib.get('pub_year', ""),
+        )
+        time.sleep(1.1)
 
 deptmap = {
     "cs": "data/cs.html",
@@ -81,7 +111,7 @@ def get_pubs(profs: List[Professor], dept: str, limit=None):
     pubs = []
     for prof in profs:
         try:
-            prof_pubs = list(gscholar.get_pubs(prof, limit=limit))
+            prof_pubs = list(get_gscholar_pubs(prof, limit=limit))
             pubs.extend([asdict(p) for p in prof_pubs])
 
             # write and checkpoint
@@ -112,4 +142,4 @@ def main(limit=None):
     get_pubs(profs, dept, limit=limit)
     
 if __name__ == "__main__":
-    main(10)
+    main()

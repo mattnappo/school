@@ -9,42 +9,6 @@ from parse import Professor
 
 p = lambda x : print(json.dumps(x, indent=2))
 
-@dataclass
-class Publication:
-    author: Professor
-    title: str
-    abstract: str
-    url: str
-    pub_year: int
-
-
-def get_pubs(prof: Professor, limit=3):
-    author_name = prof.name()
-    authors = list(scholarly.search_author(author_name))
-    authors = [author for author in authors
-               if 'university of rochester' in author["affiliation"].lower()]
-    if not authors:
-        return []
-
-    # take the first one
-    author = authors[0]
-
-    # Retrieve all the details for the author
-    author = scholarly.fill(author)
-
-    # Take a closer look at the first publication
-    for pub in tqdm(author['publications'][:limit]):
-        first_pub = scholarly.fill(pub)
-        #p(pub)
-        bib = pub["bib"]
-        yield Publication(
-            author=prof,
-            title=bib.get('title', ""),
-            abstract=bib.get('abstract', ""),
-            url=pub.get("pub_url", 1),
-            pub_year=bib.get('pub_year', ""),
-        )
-        time.sleep(1.1)
 
 def test():
     profs = [

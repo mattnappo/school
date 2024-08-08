@@ -7,6 +7,7 @@ use redis;
 use serde_json as json;
 
 pub mod model;
+pub mod server;
 
 const DATA_FILE: &'static str = "../parsed/cs_1723076144.json";
 const REDIS_SERVER: &str = "redis://127.0.0.1:6379/";
@@ -15,7 +16,7 @@ fn restart_redis() -> Result<()> {
     Ok(())
 }
 
-struct State {
+pub struct State {
     conn: redis::Connection,
 }
 
@@ -93,14 +94,38 @@ pub mod tests {
     use super::*;
 
     #[test]
-    fn test_start() -> Result<()> {
+    fn test_search1() -> Result<()> {
         let mut state = State::new(false)?;
 
+        let t0 = std::time::Instant::now();
         let search_result = state.search("cache")?;
         assert!(search_result.len() > 0);
 
+        println!(
+            "found {} results in {} ns",
+            search_result.len(),
+            (std::time::Instant::now() - t0).as_nanos()
+        );
+
         let search_result = state.search("asdasdasd")?;
         assert!(search_result.len() == 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_search2() -> Result<()> {
+        let mut state = State::new(false)?;
+
+        let t0 = std::time::Instant::now();
+        let search_result = state.search("a")?;
+        assert!(search_result.len() > 0);
+
+        println!(
+            "found {} results in {} ns",
+            search_result.len(),
+            (std::time::Instant::now() - t0).as_nanos()
+        );
 
         Ok(())
     }
