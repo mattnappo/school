@@ -13,17 +13,22 @@ struct Data {
 }
 
 #[get("/search")]
-async fn search(state: web::Data<Mutex<State>>, req: web::Query<Search>) -> impl Responder {
+async fn search(
+    state: web::Data<Mutex<State>>,
+    req: web::Query<Search>,
+) -> std::io::Result<impl Responder> {
     let t0 = std::time::Instant::now();
 
     let mut s = state.lock().unwrap();
-    let res = s.search(&req.q).unwrap();
+    let res = s
+        .search(&req.q)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
     println!(
-        "found {} results in {} ns",
+        "found {} results in {} ms",
         res.len(),
-        (std::time::Instant::now() - t0).as_nanos()
+        (std::time::Instant::now() - t0).as_millis()
     );
 
-    format!("{res:#?}")
+    Ok(format!("{res:#?}"))
 }

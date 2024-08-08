@@ -9,8 +9,21 @@ use serde_json as json;
 pub mod model;
 pub mod server;
 
-const DATA_FILE: &'static str = "../parsed/cs_1723076144.json";
+// const DATA_FILE: &'static str = "../parsed/cs_1723076144.json";
+const DATA_FILE: &'static str = "../parsed/checkpoint/cs_1723089902.json";
 const REDIS_SERVER: &str = "redis://127.0.0.1:6379/";
+
+macro_rules! time {
+    ($msg:expr, $block:block) => {
+        let t0 = std::time::Instant::now();
+        $block
+        println!(
+            "ran '{}' in {} ms",
+            $msg,
+            (std::time::Instant::now() - t0).as_millis()
+        );
+    };
+}
 
 fn restart_redis() -> Result<()> {
     Ok(())
@@ -31,8 +44,12 @@ impl State {
         let mut s = State { conn };
 
         if reset_rdb {
-            s.load_data(DATA_FILE)?;
-            s.index()?;
+            time!("load data", {
+                s.load_data(DATA_FILE)?;
+            });
+            time!("index data", {
+                s.index()?;
+            });
         }
 
         Ok(s)
@@ -81,6 +98,9 @@ impl State {
             .cmd("FT.SEARCH")
             .arg("idx:pubs")
             .arg(format!("(%{query}%|{query}*)"))
+            .arg("LIMIT")
+            .arg("0")
+            .arg("1000")
             .query::<Vec<model::Publications>>(&mut self.conn)?
             .into_iter()
             .next()

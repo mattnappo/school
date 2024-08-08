@@ -59,8 +59,8 @@ def get_gscholar_pubs(prof: Professor, limit=3):
             author=prof,
             title=bib.get('title', ""),
             abstract=bib.get('abstract', ""),
-            url=pub.get("pub_url", 1),
-            pub_year=bib.get('pub_year', ""),
+            url=pub.get("pub_url", "nourl"),
+            pub_year=bib.get('pub_year', 1),
         )
         time.sleep(1.1)
 
