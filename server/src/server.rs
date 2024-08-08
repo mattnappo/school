@@ -19,16 +19,17 @@ async fn search(
 ) -> std::io::Result<impl Responder> {
     let t0 = std::time::Instant::now();
 
+    // can try using actix_web::Result;
     let mut s = state.lock().unwrap();
-    let res = s
+    let pubs = s
         .search(&req.q)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
     println!(
         "found {} results in {} ms",
-        res.len(),
+        pubs.len(),
         (std::time::Instant::now() - t0).as_millis()
     );
 
-    Ok(format!("{res:#?}"))
+    Ok(web::Json(pubs))
 }
