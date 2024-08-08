@@ -93,11 +93,26 @@ impl State {
             })
     }
 
+    fn build_query(query: &str) -> String {
+        query
+            .split_whitespace()
+            .enumerate()
+            .map(|(i, word)| {
+                if i == query.split_whitespace().count() - 1 {
+                    format!("(%{word}%|{word}*)")
+                } else {
+                    word.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
     pub fn search(&mut self, query: &str) -> Result<Vec<model::Publication>> {
         Ok(redis::pipe()
             .cmd("FT.SEARCH")
             .arg("idx:pubs")
-            .arg(format!("(%{query}%|{query}*)"))
+            .arg(Self::build_query(query))
             .arg("LIMIT")
             .arg("0")
             .arg("1000")

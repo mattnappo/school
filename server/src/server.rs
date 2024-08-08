@@ -1,6 +1,7 @@
+use super::model;
 use super::*;
 use actix_web::{get, web, Responder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 #[derive(Deserialize)]
@@ -8,8 +9,10 @@ struct Search {
     q: String,
 }
 
-struct Data {
-    state: State,
+#[derive(Serialize)]
+struct SearchResponse {
+    metadata: String,
+    pubs: Vec<model::Publication>,
 }
 
 #[get("/search")]
@@ -25,11 +28,12 @@ async fn search(
         .search(&req.q)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-    println!(
+    let metadata = format!(
         "found {} results in {} ms",
         pubs.len(),
         (std::time::Instant::now() - t0).as_millis()
     );
+    println!("{metadata}");
 
-    Ok(web::Json(pubs))
+    Ok(web::Json(SearchResponse { metadata, pubs }))
 }
