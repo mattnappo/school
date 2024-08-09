@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use actix_cors::Cors;
 use actix_web::{web::Data, App, HttpServer};
 use clap::Parser;
 
@@ -20,8 +21,14 @@ async fn main() -> std::io::Result<()> {
     let args = Args::parse();
 
     let data = Data::new(Mutex::new(State::new(args.re_index).unwrap()));
-    HttpServer::new(move || App::new().app_data(Data::clone(&data)).service(search))
-        .bind((args.ip, args.port))?
-        .run()
-        .await
+    HttpServer::new(move || {
+        let cors = Cors::permissive();
+        App::new()
+            .wrap(cors)
+            .app_data(Data::clone(&data))
+            .service(search)
+    })
+    .bind((args.ip, args.port))?
+    .run()
+    .await
 }

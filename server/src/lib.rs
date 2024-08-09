@@ -73,6 +73,14 @@ impl State {
             .arg("AS")
             .arg("abstract")
             .arg("TEXT")
+            .arg("$.author.first")
+            .arg("AS")
+            .arg("firstname")
+            .arg("TEXT")
+            .arg("$.author.last")
+            .arg("AS")
+            .arg("lastname")
+            .arg("TEXT")
             .query::<()>(&mut self.conn)?;
         Ok(())
     }
