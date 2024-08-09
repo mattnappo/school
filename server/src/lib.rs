@@ -10,7 +10,7 @@ pub mod model;
 pub mod server;
 
 // const DATA_FILE: &'static str = "../parsed/cs_1723076144.json";
-const DATA_FILE: &'static str = "../parsed/checkpoint/cs_1723089902.json";
+const DATA_FILE: &'static str = "../parsed/cs_1723089902.json";
 const REDIS_SERVER: &str = "redis://127.0.0.1:6379/";
 
 macro_rules! time {
